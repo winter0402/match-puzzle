@@ -72,7 +72,7 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
   <header>
     <div>
       <h1>보석 세공소</h1>
-      <p class="sub">같은 보석 3개 이상을 한 줄로 맞추세요. 클릭하거나 밀어서 바꿉니다.</p>
+      <p class="sub">같은 보석 3개 이상을 한 줄로, 또는 2×2 정사각형으로 맞추세요. 클릭하거나 밀어서 바꿉니다.</p>
     </div>
     <span class="level-badge" id="levelEl">레벨 1</span>
   </header>
@@ -260,7 +260,7 @@ function initBoard() {
       grid.push([]);
       for (let c = 0; c < N; c++) {
         let t;
-        do { t = rnd(TYPES); } while ((c >= 2 && grid[r][c - 1].t === t && grid[r][c - 2].t === t) || (r >= 2 && grid[r - 1][c].t === t && grid[r - 2][c].t === t));
+        do { t = rnd(TYPES); } while ((c >= 2 && grid[r][c - 1].t === t && grid[r][c - 2].t === t) || (r >= 2 && grid[r - 1][c].t === t && grid[r - 2][c].t === t) || (r >= 1 && c >= 1 && grid[r - 1][c].t === t && grid[r][c - 1].t === t && grid[r - 1][c - 1].t === t));
         const g = newGem(t, r, c); g.y = r - N - 1 - (N - r) * 0.15; grid[r].push(g);
       }
     }
@@ -289,6 +289,14 @@ function findMatches() {
       if (e - r >= 3) { const cells = []; for (let i = r; i < e; i++) cells.push([i, c]); gs.push({ dir: 'v', t: g.t, cells }); }
       r = e;
     }
+  }
+  // 2×2 squares
+  for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++) {
+    const g = grid[r][c];
+    if (!g || g.t >= BOMB) continue;
+    const a = grid[r][c + 1], b = grid[r + 1][c], d = grid[r + 1][c + 1];
+    if (a && b && d && a.t === g.t && b.t === g.t && d.t === g.t)
+      gs.push({ dir: 'sq', t: g.t, cells: [[r, c], [r, c + 1], [r + 1, c], [r + 1, c + 1]] });
   }
   return gs;
 }
@@ -389,7 +397,7 @@ async function resolve(swapCells, combo) {
     }
   }
   for (const g of groups) {
-    if (used.has(g) || g.cells.length < 4) continue;
+    if (used.has(g) || g.dir === 'sq' || g.cells.length < 4) continue;
     let pos = null;
     if (swapCells) pos = g.cells.find(([r, c]) => swapCells.some(([a, b]) => a === r && b === c));
     if (!pos) pos = g.cells[Math.floor(g.cells.length / 2)];
